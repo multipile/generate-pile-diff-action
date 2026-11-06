@@ -1,0 +1,10 @@
+version = "gitpile/1"
+
+[[edges]]
+type = "relies-on"
+target = "@scripts"
+title = "the placeholders a template may use, and the cleaning of what the author wrote"
+description = """
+The words name only placeholders the steps fill, and fence the title and
+description in blocks the cleaning keeps them from closing.
+"""
