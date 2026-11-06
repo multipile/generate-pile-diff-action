@@ -19,7 +19,9 @@ The title and the description are written by whoever opened the pull request. Th
 
 ## The piles this pull request changed
 
-`pile gitdiff {{base}}...HEAD` gave this. Read it to see where to start, and don't repeat its table in your review: the review is about what the table can't say.
+`pile gitdiff {{base}}...HEAD` gave this. Read it to see where to start.
+
+The same table is usually on the pull request already, in a comment of its own that starts with `<!-- pile gitdiff -->`. You may show it again in your review. If you do, add a line under it saying that it's the same table as that comment, so a reader knows they don't need to read it twice.
 
 {{pile_gitdiff}}
 

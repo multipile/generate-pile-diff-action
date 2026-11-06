@@ -137,7 +137,8 @@ The action's own template asks the agent to:
 
 - carry out `pile guide review` of the gitrepo plugin
 - hold each changed pile to the task in the title and description, and to the pile's intent
-- post the review with `pile-review-comment`, as one comment edited on every run, and not repeat the table
+- post the review with `pile-review-comment`, as one comment edited on every run
+- if it shows the table of changed piles again, say that it's the same as the `pile gitdiff` comment
 - if that command isn't there, post one comment that starts with `<!-- pile review -->` some other way, and edit it on later runs
 
 A template of your own may use these placeholders:
