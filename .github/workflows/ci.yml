@@ -1,0 +1,92 @@
+# Checks the action: its scripts, a run on a small repository of piles on
+# each runner and with each kind of pile-version, and, on a pull request, a
+# run on this repository's own pull request that keeps its comment.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: shellcheck scripts/*.sh test/*.sh
+
+  fixture:
+    name: fixture (${{ matrix.os }}, ${{ matrix.pile-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
+        pile-version: ["0.1", latest, v0.1.3]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: test/fixture.sh "$RUNNER_TEMP/fixture"
+      - id: piles
+        uses: ./
+        with:
+          pile-version: ${{ matrix.pile-version }}
+          working-directory: ${{ runner.temp }}/fixture
+          base: main
+          comment: "false"
+          extra-instructions: The fixture's own words.
+      - name: Check the outputs
+        run: |
+          set -x
+          test "$CHANGED" = 1
+          case "$VERSION" in 0.1.*) ;; *) exit 1 ;; esac
+          test -z "$COMMENT_URL"
+          head -n 1 "$MARKDOWN" | grep -qx '<!-- pile gitdiff -->'
+          grep -q '`@web`' "$MARKDOWN"
+          if grep -q '`@billing`' "$MARKDOWN"; then exit 1; fi
+          test "$(jq -r .result.total.changed "$JSON")" = 1
+          cmp "$PROMPT_FILE" <(printf '%s\n' "$PROMPT")
+          grep -q '^<!-- pile review -->$' "$PROMPT_FILE"
+          grep -q '`@web`' "$PROMPT_FILE"
+          grep -q "The fixture's own words." "$PROMPT_FILE"
+          if grep -q '{{' "$PROMPT_FILE"; then exit 1; fi
+        env:
+          CHANGED: ${{ steps.piles.outputs.changed-piles }}
+          VERSION: ${{ steps.piles.outputs.pile-version }}
+          COMMENT_URL: ${{ steps.piles.outputs.comment-url }}
+          MARKDOWN: ${{ steps.piles.outputs.markdown-file }}
+          JSON: ${{ steps.piles.outputs.json-file }}
+          PROMPT: ${{ steps.piles.outputs.prompt }}
+          PROMPT_FILE: ${{ steps.piles.outputs.prompt-file }}
+
+  # This repository declares piles, so the action runs on its own pull
+  # requests as a user would. Twice, to check that the second run keeps the
+  # first one's comment. A fork's pull request can't comment, and warns.
+  own-pull-request:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - id: first
+        uses: ./
+      - id: second
+        uses: ./
+        with:
+          summary: "false"
+      - name: Check that both runs kept one comment
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          set -x
+          test -n "$FIRST"
+          test "$FIRST" = "$SECOND"
+        env:
+          FIRST: ${{ steps.first.outputs.comment-url }}
+          SECOND: ${{ steps.second.outputs.comment-url }}

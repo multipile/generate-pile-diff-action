@@ -1,0 +1,132 @@
+name: Generate pile diff
+description: Show a pull request by pile, and make a review prompt from it for an agent to carry out.
+author: multipile
+branding:
+  icon: layers
+  color: gray-dark
+
+inputs:
+  pile-version:
+    description: >-
+      Which pile to install. A major.minor such as 0.1 takes the newest patch
+      of it; latest takes the newest release; 0.1.3 or v0.1.3 takes exactly
+      that one.
+    required: false
+    default: "0.1"
+  pile-ref:
+    description: >-
+      Build pile from this branch or tag of multipile/pile-cli instead of
+      installing a release, to try one that is not released yet. It needs
+      cargo, and it takes precedence over pile-version.
+    required: false
+    default: ""
+  base:
+    description: >-
+      The revision the pull request is compared with, from where it left it,
+      as in pile gitdiff <base>...HEAD. The default is the pull request's
+      target, origin/<base branch>.
+    required: false
+    default: ""
+  working-directory:
+    description: The directory of the repository to read, checked out with its history.
+    required: false
+    default: "."
+  template:
+    description: >-
+      A prompt template of your own, as a path from the working directory.
+      The default is the action's own, which asks for a review by pile.
+    required: false
+    default: ""
+  extra-instructions:
+    description: Text put into the template at {{extra_instructions}}, after the built-in instructions.
+    required: false
+    default: ""
+  comment:
+    description: Keep one comment on the pull request with the piles it changed, edited on every run.
+    required: false
+    default: "true"
+  comment-author:
+    description: >-
+      The login whose comment is edited. The default is the login
+      GITHUB_TOKEN posts as; set it when github-token is another token.
+    required: false
+    default: github-actions[bot]
+  summary:
+    description: Write the piles the pull request changed to the job summary.
+    required: false
+    default: "true"
+  github-token:
+    description: Downloads the pile release and posts the comment.
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  prompt:
+    description: The prompt, to pass to an agent action's prompt input.
+    value: ${{ steps.render.outputs.prompt }}
+  prompt-file:
+    description: The path of the prompt, to upload when the agent runs in another job.
+    value: ${{ steps.render.outputs.prompt-file }}
+  markdown-file:
+    description: The path of pile gitdiff's answer in Markdown.
+    value: ${{ steps.gitdiff.outputs.markdown-file }}
+  json-file:
+    description: The path of pile gitdiff's answer in JSON.
+    value: ${{ steps.gitdiff.outputs.json-file }}
+  changed-piles:
+    description: How many piles the pull request changed.
+    value: ${{ steps.gitdiff.outputs.changed-piles }}
+  pile-version:
+    description: The version of pile installed.
+    value: ${{ steps.install.outputs.pile-version }}
+  comment-url:
+    description: The URL of the comment, when one was posted or is already up to date.
+    value: ${{ steps.comment.outputs.comment-url }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install pile
+      id: install
+      shell: bash
+      run: '"$GITHUB_ACTION_PATH/scripts/install-pile.sh"'
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        PILE_VERSION: ${{ inputs.pile-version }}
+        PILE_REF: ${{ inputs.pile-ref }}
+
+    - name: Arrange the pull request by pile
+      id: gitdiff
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: '"$GITHUB_ACTION_PATH/scripts/gitdiff.sh"'
+      env:
+        BASE: ${{ inputs.base }}
+
+    - name: Write the job summary
+      if: inputs.summary == 'true'
+      shell: bash
+      run: cat "$MARKDOWN" >> "$GITHUB_STEP_SUMMARY"
+      env:
+        MARKDOWN: ${{ steps.gitdiff.outputs.markdown-file }}
+
+    - name: Keep the comment on the pull request
+      id: comment
+      if: inputs.comment == 'true'
+      shell: bash
+      run: '"$GITHUB_ACTION_PATH/scripts/sticky-comment.sh" "$MARKDOWN"'
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        MARKDOWN: ${{ steps.gitdiff.outputs.markdown-file }}
+        AUTHOR: ${{ inputs.comment-author }}
+
+    - name: Make the prompt
+      id: render
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: '"$GITHUB_ACTION_PATH/scripts/render.sh"'
+      env:
+        TEMPLATE: ${{ inputs.template }}
+        EXTRA_INSTRUCTIONS: ${{ inputs.extra-instructions }}
+        MARKDOWN: ${{ steps.gitdiff.outputs.markdown-file }}
+        BASE: ${{ steps.gitdiff.outputs.base }}

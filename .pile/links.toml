@@ -1,0 +1,18 @@
+version = "gitpile/1"
+
+[[edges]]
+type = "relies-on"
+target = "@scripts"
+title = "the steps that get pile, run it, keep the comment and fill the prompt"
+description = """
+The action promises its inputs and outputs, and the steps keep the promise:
+each input reaches a step, and each output is one a step sets.
+"""
+
+[[edges]]
+type = "relies-on"
+target = "@template"
+title = "the prompt it gives back unless the user brings their own"
+description = """
+What the action says its prompt asks of an agent is what the default words ask.
+"""
