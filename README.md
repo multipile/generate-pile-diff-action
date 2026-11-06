@@ -14,7 +14,8 @@ The action reviews nothing itself. You pass the prompt to the agent action of yo
 name: piles
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    # edited: a new base, or a new description, which is the task.
+    types: [opened, synchronize, reopened, ready_for_review, edited]
 
 jobs:
   piles:
@@ -52,7 +53,7 @@ jobs:
 Two commands stay on the `PATH` for the rest of the job, for the agent:
 
 - `pile`, so the agent can read the repository by pile.
-- `pile-review-comment <file>`, which keeps the review's comment on this pull request: one comment marked `<!-- pile review -->`, edited on every run. It is all the agent needs to post. So the agent gets no `gh api` and no `gh pr comment`, and can't write anywhere else. It needs `GH_TOKEN` in the agent's step.
+- `pile-review-comment`, which takes the review on stdin (or a file) and keeps it on this pull request: one comment marked `<!-- pile review -->`, edited on every run. It is all the agent needs to post. So the agent gets no `gh api` and no `gh pr comment`, and can't write anywhere else. It needs `GH_TOKEN` in the agent's step.
 
 The action runs no agent, so it doesn't configure one. Which tools the agent may use is set in the agent's own step. The list above is what the default prompt leads to:
 
