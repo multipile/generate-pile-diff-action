@@ -24,14 +24,21 @@ field() {
 }
 
 # The title and the body are written by whoever opened the pull request.
-# Hidden text is taken out, and so is anything that would close the tags
-# the template puts them in.
+# Hidden text is taken out: HTML comments outside code, and invisible
+# characters. So is anything that would close the tags the template puts
+# them in.
 untrusted() {
+  # shellcheck disable=SC2016 # Python, not shell.
   python3 -I -c '
 import re, sys
 text = sys.stdin.read()
-text = re.sub(r"<!--.*?(?:-->|\Z)", "", text, flags=re.S)
-text = re.sub("[​-‏‪-‮⁠-⁤﻿\U000e0000-\U000e007f]", "", text)
+# Code, in a fence or between backticks, is shown as it is written, so an
+# HTML comment in it hides nothing and is kept.
+parts = re.split(r"(```.*?(?:```|\Z)|`[^`\n]+`)", text, flags=re.S)
+for i in range(0, len(parts), 2):
+    parts[i] = re.sub(r"<!--.*?(?:-->|\Z)", "", parts[i], flags=re.S)
+text = "".join(parts)
+text = re.sub(r"[\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff\U000e0000-\U000e007f]", "", text)
 text = re.sub(r"</?\s*pull-request-[a-z-]*\s*>", "", text, flags=re.I)
 sys.stdout.write(text)
 '

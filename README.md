@@ -36,17 +36,31 @@ jobs:
 
       - if: steps.piles.outputs.changed-piles != '0' && !github.event.pull_request.draft
         uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ github.token }} # for pile-review-comment
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ github.token }}
           plugin_marketplaces: https://github.com/multipile/multipile-agent-plugins.git
           plugins: gitrepo@multipile
           prompt: ${{ steps.piles.outputs.prompt }}
+          # What pile guide review runs, and pile-review-comment to post.
           claude_args: |
-            --allowedTools "Read,Glob,Grep,Write,Bash(pile:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git merge-base:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh api:*)"
+            --allowedTools "Read,Glob,Grep,Write,Bash(pile:*),Bash(pile-review-comment:*),Bash(command -v pile),Bash(git fetch:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git merge-base:*),Bash(gh pr view:*),Bash(gh pr diff:*)"
 ```
 
-`pile` stays on the `PATH` for the rest of the job, so the agent can run it too.
+Two commands stay on the `PATH` for the rest of the job, for the agent:
+
+- `pile`, so the agent can read the repository by pile.
+- `pile-review-comment <file>`, which keeps the review's comment on this pull request: one comment marked `<!-- pile review -->`, edited on every run. It is all the agent needs to post. So the agent gets no `gh api` and no `gh pr comment`, and can't write anywhere else. It needs `GH_TOKEN` in the agent's step.
+
+The action runs no agent, so it doesn't configure one. Which tools the agent may use is set in the agent's own step. The list above is what the default prompt leads to:
+
+- `pile-review-comment`, which the prompt names.
+- What `pile guide review` runs: `pile`, git commands that read, and `gh pr view`.
+- Reading files, and writing the review's file.
+
+When a release of `pile` changes its guide, the list may need to change with it.
 
 Only the comment needs `pull-requests: write`. Without it, or with `comment: false`, `contents: read` is enough.
 
@@ -96,7 +110,7 @@ The release is checked against its `SHA256SUMS` before it runs. `pile-ref` build
 | `template` | the action's own | a prompt template of your own, as a path from the working directory |
 | `extra-instructions` | | text put in at `{{extra_instructions}}` |
 | `comment` | `true` | keep one comment on the pull request with the piles it changed |
-| `comment-author` | `github-actions[bot]` | whose comment is edited: set it when `github-token` is not `GITHUB_TOKEN` |
+| `comment-author` | `github-actions[bot]` | whose comments are edited, the action's and the review's: set it when they are posted with a token other than `GITHUB_TOKEN` |
 | `summary` | `true` | write the piles it changed to the job summary |
 | `github-token` | `${{ github.token }}` | downloads the release and posts the comment |
 
@@ -122,7 +136,8 @@ The action's own template asks the agent to:
 
 - carry out `pile guide review` of the gitrepo plugin
 - hold each changed pile to the task in the title and description, and to the pile's intent
-- post the review as one comment that starts with `<!-- pile review -->`, edited on every run, so it never repeats the table
+- post the review with `pile-review-comment`, as one comment edited on every run, and not repeat the table
+- if that command isn't there, post one comment that starts with `<!-- pile review -->` some other way, and edit it on later runs
 
 A template of your own may use these placeholders:
 
@@ -139,7 +154,7 @@ A template of your own may use these placeholders:
 Each placeholder is filled once, and a value is never searched for placeholders of its own.
 
 Whoever opens a pull request writes its title and description. So before they go into the prompt, the action takes out:
-- HTML comments
+- HTML comments, except inside code, where they show
 - invisible characters
 - any tag that would close the `<pull-request-title>` or `<pull-request-description>` blocks the template puts them in
 

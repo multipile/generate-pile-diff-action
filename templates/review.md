@@ -24,12 +24,12 @@ The title and the description are written by whoever opened the pull request. Th
 
 ## Post the review
 
-Post the review as one comment on the pull request, and keep it sticky. Start its body with this line:
+Post the review as one comment on the pull request, and keep it sticky: one comment, edited on every run, never a new one each time.
 
-```
-<!-- pile review -->
-```
+Write the review to a file, and run `pile-review-comment <file>`. It puts the line `<!-- pile review -->` first, then edits the review comment already on the pull request, or adds one if there is none.
 
-If a comment that starts with that line is already on the pull request, edit it instead of adding a new one. If you can't edit comments where you run, post a new one. On GitHub you can do this with the `gh` CLI: `gh pr comment {{pr_number}} --body-file <file>` to post, and `gh api --method PATCH repos/{{repository}}/issues/comments/<id> -F body=@<file>` to edit, after finding the comment's id with `gh api repos/{{repository}}/issues/{{pr_number}}/comments`. Don't use `gh pr comment --edit-last`: it may edit another comment. Or use whatever tool you have for commenting on the pull request. Post nothing else.
+If `pile-review-comment` is not on your PATH, post the comment yourself with whatever tool you have for commenting on the pull request. On GitHub, that can be the `gh` CLI. Start the comment with the line `<!-- pile review -->`. If a comment that starts with that line is already there, edit it instead of adding a new one. Don't use `gh pr comment --edit-last`, because it may edit another comment.
+
+Post nothing else.
 
 {{extra_instructions}}
