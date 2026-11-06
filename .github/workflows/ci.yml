@@ -48,10 +48,12 @@ jobs:
           if grep -q '`@billing`' "$MARKDOWN"; then exit 1; fi
           test "$(jq -r .result.total.changed "$JSON")" = 1
           cmp "$PROMPT_FILE" <(printf '%s\n' "$PROMPT")
-          grep -q '^<!-- pile review -->$' "$PROMPT_FILE"
+          grep -q '<!-- pile review -->' "$PROMPT_FILE"
           grep -q '`@web`' "$PROMPT_FILE"
           grep -q "The fixture's own words." "$PROMPT_FILE"
           if grep -q '{{' "$PROMPT_FILE"; then exit 1; fi
+          grep -q 'pile-review-comment' "$PROMPT_FILE"
+          command -v pile-review-comment
         env:
           CHANGED: ${{ steps.piles.outputs.changed-piles }}
           VERSION: ${{ steps.piles.outputs.pile-version }}
@@ -90,3 +92,20 @@ jobs:
         env:
           FIRST: ${{ steps.first.outputs.comment-url }}
           SECOND: ${{ steps.second.outputs.comment-url }}
+      # As an agent would post its review, twice: the second edits the first.
+      - name: Check that pile-review-comment keeps one comment
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          set -x
+          echo "pile-review-comment works: this comment is the action's own check of it, run $GITHUB_RUN_ID." > "$RUNNER_TEMP/review.md"
+          pile-review-comment "$RUNNER_TEMP/review.md"
+          echo "Edited by the second call." >> "$RUNNER_TEMP/review.md"
+          pile-review-comment "$RUNNER_TEMP/review.md"
+          n=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
+            --jq '[.[] | select(.body | startswith("<!-- pile review -->"))] | length')
+          test "$n" = 1
+          gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
+            --jq '.[] | select(.body | startswith("<!-- pile review -->")) | .body' | grep -q 'Edited by the second call.'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
