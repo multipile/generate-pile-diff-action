@@ -92,20 +92,23 @@ jobs:
         env:
           FIRST: ${{ steps.first.outputs.comment-url }}
           SECOND: ${{ steps.second.outputs.comment-url }}
-      # As an agent would post its review, twice: the second edits the first.
+      # As an agent would post its review, twice, from a file and from stdin:
+      # the second edits the first.
       - name: Check that pile-review-comment keeps one comment
         if: github.event.pull_request.head.repo.full_name == github.repository
         run: |
           set -x
           echo "pile-review-comment works: this comment is the action's own check of it, run $GITHUB_RUN_ID." > "$RUNNER_TEMP/review.md"
           pile-review-comment "$RUNNER_TEMP/review.md"
-          echo "Edited by the second call." >> "$RUNNER_TEMP/review.md"
-          pile-review-comment "$RUNNER_TEMP/review.md"
+          pile-review-comment << EOF
+          $(cat "$RUNNER_TEMP/review.md")
+          Edited by the second call, from stdin.
+          EOF
           n=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
             --jq '[.[] | select(.body | startswith("<!-- pile review -->"))] | length')
           test "$n" = 1
           gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
-            --jq '.[] | select(.body | startswith("<!-- pile review -->")) | .body' | grep -q 'Edited by the second call.'
+            --jq '.[] | select(.body | startswith("<!-- pile review -->")) | .body' | grep -q 'Edited by the second call, from stdin.'
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
