@@ -137,7 +137,7 @@ The action's own template asks the agent to:
 
 - carry out `pile guide review` of the gitrepo plugin
 - give each changed pile two answers, as `pile guide quality` says: whether the task in the title and description needs it, and whether its intent admits it
-- report findings only, each blocking or a question
+- report findings only, each blocking or to consider, in the shape `pile guide quality` shows, and nothing a code review would say
 - post the review with `pile-review-comment`, as one comment edited on every run
 - leave out the table of changed piles, which the `pile gitdiff` comment already shows
 - if that command isn't there, post one comment that starts with `<!-- pile review -->` some other way, and edit it on later runs
