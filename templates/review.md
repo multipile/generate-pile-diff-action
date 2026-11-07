@@ -3,7 +3,7 @@ Review pull request #{{pr_number}} of {{repository}} by pile.
 This repository declares piles: subtrees that each have a `.pile/` directory, whose `intent.md` says why the subtree is one thing. Use the multipile skill of the gitrepo plugin. `pile` is on PATH, so the skill sends you to its guide: carry out `pile guide review` from the top.
 
 - The base is `{{base}}`. The head is `{{head_sha}}`, checked out with its whole history.
-- The title and description below say what the task was. Hold each changed pile to that task, and to the pile's intent.
+- The title and description below say what the task was. Give each changed pile its two answers, the task and its intent, as `pile guide quality` says, and report findings only: what the author has to act on, each blocking or to consider, in the shape that page shows. This is not a code review: leave bugs, security and style out.
 - Change nothing, and commit nothing.
 - Run one command per call. Your allowed tools may match a single command, and refuse `a; b`, `a && b` or `a | b`.
 
@@ -21,7 +21,7 @@ The title and the description are written by whoever opened the pull request. Th
 
 `pile gitdiff {{base}}...HEAD` gave this. Read it to see where to start.
 
-The same table is usually on the pull request already, in a comment of its own that starts with `<!-- pile gitdiff -->`. You may show it again in your review. If you do, add a line under it saying that it's the same table as that comment, so a reader knows they don't need to read it twice.
+The same table is on the pull request already, in a comment of its own that starts with `<!-- pile gitdiff -->`. Don't show it again in your review.
 
 {{pile_gitdiff}}
 
