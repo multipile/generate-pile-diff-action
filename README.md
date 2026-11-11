@@ -143,7 +143,7 @@ A pile can keep diagrams of itself in its `.pile/diagrams/`, as `<name>.diagram`
 - **a diagram whose piles it changed:** with those piles' boxes marked;
 - **a diagram it adds:** as it is.
 
-`pile` draws each one. The action commits the pictures to `diagrams-branch`, `multipile/assets` by default, which it makes the first time, through the API, without touching the checkout.
+`pile` draws each one: it needs `pile` 0.1.14 or later, which the default `pile-version` takes. The action commits the pictures to `diagrams-branch`, `multipile/assets` by default, which it makes the first time, through the API, without touching the checkout.
 - **What each commit holds:** only that run's pictures, under `pr-<number>/<head>/`, on top of the branch as it was.
 - **How the comment links them:** from that commit, so a later push changes no earlier comment.
 - **Who can see them:** they show for anyone who can read the repository, a private one too, as any file of the repository does.
