@@ -113,7 +113,9 @@ The release is checked against its `SHA256SUMS` before it runs. `pile-ref` build
 | `comment` | `true` | keep one comment on the pull request with the piles it changed |
 | `comment-author` | `github-actions[bot]` | whose comments are edited, the action's and the review's: set it when they are posted with a token other than `GITHUB_TOKEN` |
 | `summary` | `true` | write the piles it changed to the job summary |
-| `github-token` | `${{ github.token }}` | downloads the release and posts the comment |
+| `diagrams` | `none` | how the comment shows the diagrams the pull request touches: `none`, or `branch` (see [Diagrams](#diagrams)) |
+| `diagrams-branch` | `multipile/assets` | the branch the pictures of diagrams are committed to |
+| `github-token` | `${{ github.token }}` | downloads the release, posts the comment, and commits the pictures of diagrams |
 
 ## Outputs
 
@@ -124,12 +126,37 @@ The release is checked against its `SHA256SUMS` before it runs. `pile-ref` build
 | `markdown-file` | `pile gitdiff`'s answer in Markdown |
 | `json-file` | `pile gitdiff`'s answer in JSON |
 | `changed-piles` | how many piles the pull request changed |
+| `diagrams` | how many diagrams the pull request touches, when `diagrams` is not `none` |
+| `diagrams-url` | the commit of `diagrams-branch` holding this run's pictures |
 | `pile-version` | the version of `pile` installed |
 | `comment-url` | the comment's URL, when there is one |
 
 ## The comment
 
 The Markdown starts with the line `<!-- pile gitdiff -->`. The action edits the comment by `comment-author` that starts with it. If there is no such comment, it adds one. When nothing changed, the comment is left alone.
+
+## Diagrams
+
+A pile can keep diagrams of itself in its `.pile/diagrams/`, as `<name>.diagram` files (`pile guide diagrams`). With `diagrams: branch`, the comment shows each diagram the pull request touches, under **Diagrams**:
+
+- **a diagram it edits:** as an animation from the base's version to the pull request's, with what was added, removed and changed marked;
+- **a diagram whose piles it changed:** with those piles' boxes marked;
+- **a diagram it adds:** as it is.
+
+`pile` draws each one. The action commits the pictures to `diagrams-branch`, `multipile/assets` by default, which it makes the first time, through the API, without touching the checkout.
+- **What each commit holds:** only that run's pictures, under `pr-<number>/<head>/`, on top of the branch as it was.
+- **How the comment links them:** from that commit, so a later push changes no earlier comment.
+- **Who can see them:** they show for anyone who can read the repository, a private one too, as any file of the repository does.
+
+It needs `contents: write`:
+
+```yaml
+    permissions:
+      contents: write # for the pictures of diagrams
+      pull-requests: write # for the comment
+```
+
+A pull request from a fork gets no `contents: write`. There the section names the diagrams, and says why they aren't shown. The pictures stay on the branch; delete the branch to remove them all.
 
 ## The prompt
 

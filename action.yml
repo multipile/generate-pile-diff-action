@@ -56,8 +56,20 @@ inputs:
     description: Write the piles the pull request changed to the job summary.
     required: false
     default: "true"
+  diagrams:
+    description: >-
+      How the comment shows the diagrams the pull request touches: the ones it
+      adds, edits, or whose piles it changes. none shows none. branch draws
+      each with pile, commits the pictures to diagrams-branch in this
+      repository, and links them from that commit; it needs contents: write.
+    required: false
+    default: none
+  diagrams-branch:
+    description: The branch the pictures of diagrams are committed to, when diagrams is branch.
+    required: false
+    default: multipile/assets
   github-token:
-    description: Downloads the pile release and posts the comment.
+    description: Downloads the pile release, posts the comment, and commits the pictures of diagrams.
     required: false
     default: ${{ github.token }}
 
@@ -77,6 +89,12 @@ outputs:
   changed-piles:
     description: How many piles the pull request changed.
     value: ${{ steps.gitdiff.outputs.changed-piles }}
+  diagrams:
+    description: How many diagrams the pull request touches, when diagrams is not none.
+    value: ${{ steps.diagrams.outputs.diagrams }}
+  diagrams-url:
+    description: The commit of diagrams-branch that holds this run's pictures, when there are any.
+    value: ${{ steps.diagrams.outputs.diagrams-url }}
   pile-version:
     description: The version of pile installed.
     value: ${{ steps.install.outputs.pile-version }}
@@ -110,6 +128,19 @@ runs:
       run: '"$GITHUB_ACTION_PATH/scripts/gitdiff.sh"'
       env:
         BASE: ${{ inputs.base }}
+
+    - name: Show the diagrams the pull request touches
+      id: diagrams
+      if: inputs.diagrams != 'none'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: '"$GITHUB_ACTION_PATH/scripts/diagrams.sh"'
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        MODE: ${{ inputs.diagrams }}
+        BRANCH: ${{ inputs.diagrams-branch }}
+        BASE: ${{ steps.gitdiff.outputs.base }}
+        MARKDOWN: ${{ steps.gitdiff.outputs.markdown-file }}
 
     - name: Write the job summary
       if: inputs.summary == 'true'
