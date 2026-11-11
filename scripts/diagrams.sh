@@ -68,27 +68,32 @@ pr=$(jq -r '.pull_request.number // "none"' "${GITHUB_EVENT_PATH:-/dev/null}" 2>
 head=$(git rev-parse HEAD)
 dir="pr-$pr/$head"
 published=""
+# Each API call's error is kept, so the warning says what GitHub answered.
+api() { gh api "$@" 2>> "$work/api-errors.txt"; }
 publish() {
   local entries="[]" n file blob parent tree commit
   while IFS=$'\t' read -r n file; do
     blob=$(base64 < "$file" | tr -d '\n' | jq -Rs '{content: ., encoding: "base64"}' |
-      gh api "repos/$GITHUB_REPOSITORY/git/blobs" --input - --jq .sha) || return 1
+      api "repos/$GITHUB_REPOSITORY/git/blobs" --input - --jq .sha) || return 1
     entries=$(jq -c --arg path "$dir/${file##*/}" --arg sha "$blob" \
       '. + [{path: $path, mode: "100644", type: "blob", sha: $sha}]' <<< "$entries")
   done < "$work/drawn.tsv"
   tree=$(jq -n --argjson tree "$entries" '{tree: $tree}' |
-    gh api "repos/$GITHUB_REPOSITORY/git/trees" --input - --jq .sha) || return 1
+    api "repos/$GITHUB_REPOSITORY/git/trees" --input - --jq .sha) || return 1
   for _ in 1 2 3; do
+    # The branch's tip, or nothing when there is no branch yet: an answer
+    # that is not a commit's id is an error, and is not a parent.
     parent=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$branch" --jq .object.sha 2> /dev/null || true)
+    [[ $parent =~ ^[0-9a-f]{40}$ ]] || parent=""
     commit=$(jq -n --arg tree "$tree" --arg parent "$parent" --arg message "Diagrams of pull request #$pr at $head" \
       '{message: $message, tree: $tree, parents: (if $parent == "" then [] else [$parent] end)}' |
-      gh api "repos/$GITHUB_REPOSITORY/git/commits" --input - --jq .sha) || return 1
+      api "repos/$GITHUB_REPOSITORY/git/commits" --input - --jq .sha) || return 1
     if [ -z "$parent" ]; then
-      if gh api "repos/$GITHUB_REPOSITORY/git/refs" -f "ref=refs/heads/$branch" -f "sha=$commit" > /dev/null 2>&1; then
+      if api "repos/$GITHUB_REPOSITORY/git/refs" -f "ref=refs/heads/$branch" -f "sha=$commit" > /dev/null; then
         published=$commit
         return 0
       fi
-    elif gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/$branch" -f "sha=$commit" -F force=false > /dev/null 2>&1; then
+    elif api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/$branch" -f "sha=$commit" -F force=false > /dev/null; then
       published=$commit
       return 0
     fi
@@ -98,7 +103,8 @@ publish() {
 }
 reason=""
 if [ -s "$work/drawn.tsv" ] && ! publish; then
-  reason="the pictures could not be published to the branch $branch: the workflow needs contents: write, which a fork's pull request does not get"
+  said=$(tail -n 1 "$work/api-errors.txt" 2> /dev/null | tr -d '`\r' || true)
+  reason="the pictures could not be published to the branch $branch (GitHub answered: ${said:-nothing}). It needs contents: write, which a fork's pull request does not get"
   echo "::warning::$reason"
 fi
 echo "diagrams-url=${published:+https://github.com/$GITHUB_REPOSITORY/tree/$published/$dir}" >> "${GITHUB_OUTPUT:-/dev/null}"
