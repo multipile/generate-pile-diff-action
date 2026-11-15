@@ -8,6 +8,9 @@ A GitHub Action for repositories that declare piles. On a pull request it runs [
 
 The action reviews nothing itself. You pass the prompt to the agent action of your choice, such as [`anthropics/claude-code-action`](https://github.com/anthropics/claude-code-action), and that action writes the review and posts it.
 
+> [!NOTE]
+> **multipile is in early development.** Commands, file formats and output can still change between releases. Try it, and [tell us what you find](https://github.com/multipile/generate-pile-diff-action/issues).
+
 ## Use it
 
 ```yaml
