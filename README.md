@@ -45,6 +45,7 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ github.token }}
+          # Optional: the pile-review skill, which sends the agent to the same guide.
           plugin_marketplaces: https://github.com/multipile/multipile-agent-plugins.git
           plugins: gitrepo@multipile
           prompt: ${{ steps.piles.outputs.prompt }}
@@ -165,7 +166,7 @@ A pull request from a fork gets no `contents: write`. There the section names th
 
 The action's own template asks the agent to:
 
-- carry out `pile guide review` of the gitrepo plugin
+- carry out `pile guide review`, the review that `pile` carries
 - give each changed pile two answers, as `pile guide quality` says: whether the task in the title and description needs it, and whether its intent admits it
 - report findings only, each blocking or to consider, in the shape `pile guide quality` shows, and nothing a code review would say
 - post the review with `pile-review-comment`, as one comment edited on every run

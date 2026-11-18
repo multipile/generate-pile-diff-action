@@ -1,6 +1,6 @@
 Review pull request #{{pr_number}} of {{repository}} by pile.
 
-This repository declares piles: subtrees that each have a `.pile/` directory, whose `intent.md` says why the subtree is one thing. Use the multipile skill of the gitrepo plugin. `pile` is on PATH, so the skill sends you to its guide: carry out `pile guide review` from the top.
+This repository declares piles: subtrees that each have a `.pile/` directory, whose `intent.md` says why the subtree is one thing. `pile` is on PATH, and carries the review: carry out `pile guide review` from the top. Where the `pile-review` skill of the gitrepo plugin is installed, it says the same. Its steps that find the change and arrange it by pile are done already, and their answers are below.
 
 - The base is `{{base}}`. The head is `{{head_sha}}`, checked out with its whole history.
 - The title and description below say what the task was. Give each changed pile its two answers, the task and its intent, as `pile guide quality` says, and report findings only: what the author has to act on, each blocking or to consider, in the shape that page shows. This is not a code review: leave bugs, security and style out.
