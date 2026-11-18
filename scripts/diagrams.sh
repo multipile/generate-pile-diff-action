@@ -5,9 +5,15 @@
 # Runs in the repository to read.
 #
 # A diagram is touched when the pull request adds it, edits it, or changes
-# a pile it shows (pile diagram list --since). An edited one is drawn as an
-# animation from its first version to its second; one whose piles changed,
-# with their boxes marked; an added one as it is.
+# something it shows (pile diagram list --since): a pile, and, from a pile
+# that says so in the diagram's touched, any other node or a link. An
+# edited one is drawn as an animation from its first version to its second;
+# one that shows what changed, with those boxes and lines marked; an added
+# one as it is.
+#
+# A pile that says what a diagram misses, the nodes and links it should
+# show and does not draw, has them said under the diagram. A diagram that
+# misses something is shown for that alone, as it is.
 #
 # MODE is how they are shown: none, or branch, which commits the pictures
 # to BRANCH in this repository through the API, and links each from the
@@ -34,7 +40,8 @@ esac
 since=$(git merge-base "$BASE" HEAD)
 work=$(mktemp -d)
 pile diagram list --since "$since" --format json > "$work/list.json"
-jq -c '.result.diagrams[] | select(.change == "added" or .change == "edited" or .change == "piles")' \
+jq -c '.result.diagrams[] | select(.change == "added" or .change == "edited" or .change == "piles"
+    or (.change == null and ((.misses // []) | length) > 0))' \
   "$work/list.json" > "$work/touched.jsonl"
 count=$(wc -l < "$work/touched.jsonl" | tr -d ' ')
 echo "diagrams=$count" >> "${GITHUB_OUTPUT:-/dev/null}"
@@ -113,6 +120,10 @@ echo "diagrams-url=${published:+https://github.com/$GITHUB_REPOSITORY/tree/$publ
 # request wrote, so they go in code spans, cleaned of what would end one.
 # shellcheck disable=SC2016 # The backticks are Markdown, not shell.
 code() { printf '`%s`' "$(tr -d '`\r\n' <<< "$1")"; }
+# A list of references, each in a code span of its own: a link has spaces
+# in it, and a pile's @name outside one would mention a user.
+# shellcheck disable=SC2016 # The backticks are jq's, not shell.
+codes() { jq -r --arg field "$1" '.[$field] | map("`" + gsub("[`\r\n]"; "") + "`") | join(", ")' <<< "$d"; }
 {
   echo
   echo "### Diagrams"
@@ -130,10 +141,23 @@ code() { printf '`%s`' "$(tr -d '`\r\n' <<< "$1")"; }
     case "$change" in
       added) what="added by this pull request" ;;
       edited) what="edited: from the base to this pull request" ;;
-      *) what="shows piles this pull request changed: $(jq -r '.piles | join(", ")' <<< "$d" | tr -d '`\r\n')" ;;
+      piles)
+        # touched holds every reference, links too. An older pile gives
+        # the piles alone.
+        if jq -e '.touched | type == "array"' <<< "$d" > /dev/null; then
+          what="shows what this pull request changed: $(codes touched)"
+        else
+          what="shows piles this pull request changed: $(jq -r '.piles | join(", ")' <<< "$d" | tr -d '`\r\n')"
+        fi
+        ;;
+      *) what="not changed by this pull request" ;;
     esac
     echo "**$(code "$name")** in $(code "$path"), $what"
     echo
+    if jq -e '(.misses // []) | length > 0' <<< "$d" > /dev/null; then
+      echo "It misses $(codes misses), which the diagram should show."
+      echo
+    fi
     file=$(awk -F '\t' -v n="$n" '$1 == n { print $2 }' "$work/drawn.tsv")
     if [ -n "$published" ] && [ -n "$file" ]; then
       echo "![$(tr -d '[]`\r\n' <<< "$name")](https://github.com/$GITHUB_REPOSITORY/raw/$published/$dir/${file##*/})"

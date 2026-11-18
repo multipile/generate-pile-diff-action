@@ -19,7 +19,10 @@ A composite GitHub Action, `multipile/generate-pile-diff-action`. `action.yml` a
 
 ```sh
 shellcheck scripts/*.sh test/*.sh
+test/diagrams.sh
 ```
+
+`test/diagrams.sh` checks the section `scripts/diagrams.sh` writes for each answer `pile` can give, with a `pile` and a `gh` of its own, so it needs neither.
 
 CI runs the action on a repository that `test/fixture.sh` makes, on each runner and with each kind of `pile-version`. On a pull request, it also runs the action on the pull request itself.
 
