@@ -2,7 +2,7 @@
 
 ## Piles
 
-This repository declares piles: subtrees that each have a `.pile/` directory whose `intent.md` says why they are one thing. Read a pile's intent before you change the pile, and keep it true in the same commit. `pile doctor` (or `piles.sh check` of the gitrepo plugin) must pass before a commit.
+This repository declares piles: subtrees that each have a `.pile/` directory whose `intent.md` says why they are one thing. Read a pile's intent before you change the pile, and keep it true in the same commit. `pile doctor` must exit 0 before a commit.
 
 ## What this is
 
