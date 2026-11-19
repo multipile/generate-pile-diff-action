@@ -1,6 +1,7 @@
 # Checks the action: its scripts, a run on a small repository of piles on
-# each runner and with each kind of pile-version, and, on a pull request, a
-# run on this repository's own pull request that keeps its comment.
+# each runner and with each kind of pile-version, a run on one that keeps a
+# diagram, and, on a pull request, a run on this repository's own pull
+# request that keeps its comment.
 name: ci
 
 on:
@@ -17,6 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: shellcheck scripts/*.sh test/*.sh
+      - run: test/diagrams.sh
 
   fixture:
     name: fixture (${{ matrix.os }}, ${{ matrix.pile-version }})
@@ -61,6 +63,40 @@ jobs:
           MARKDOWN: ${{ steps.piles.outputs.markdown-file }}
           JSON: ${{ steps.piles.outputs.json-file }}
           PROMPT: ${{ steps.piles.outputs.prompt }}
+          PROMPT_FILE: ${{ steps.piles.outputs.prompt-file }}
+
+  # A run on a repository whose diagram stands for nodes and links and says
+  # what it should show. Its branch changes a link the diagram draws, and
+  # adds a pile the diagram should show and does not. The token cannot write
+  # contents, so no picture is published, and the section still says what
+  # each diagram shows.
+  diagrams:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: test/fixture.sh "$RUNNER_TEMP/fixture" diagrams
+      - id: piles
+        uses: ./
+        with:
+          pile-version: latest
+          working-directory: ${{ runner.temp }}/fixture
+          base: main
+          comment: "false"
+          diagrams: branch
+      - name: Check what the section says of the diagram
+        run: |
+          set -x
+          test "$DIAGRAMS" = 1
+          test -z "$DIAGRAMS_URL"
+          grep -qxF '### Diagrams' "$MARKDOWN"
+          grep -F '**`shop`** in `:/.pile/diagrams/shop.diagram`, shows what this pull request changed: ' "$MARKDOWN" > "$RUNNER_TEMP/caption"
+          grep -qF '`@web relies-on @billing`' "$RUNNER_TEMP/caption"
+          grep -qxF 'It misses `@orders`, which the diagram should show.' "$MARKDOWN"
+          grep -qF '`@web relies-on @billing`' "$PROMPT_FILE"
+        env:
+          DIAGRAMS: ${{ steps.piles.outputs.diagrams }}
+          DIAGRAMS_URL: ${{ steps.piles.outputs.diagrams-url }}
+          MARKDOWN: ${{ steps.piles.outputs.markdown-file }}
           PROMPT_FILE: ${{ steps.piles.outputs.prompt-file }}
 
   # This repository declares piles, so the action runs on its own pull

@@ -59,7 +59,8 @@ inputs:
   diagrams:
     description: >-
       How the comment shows the diagrams the pull request touches: the ones it
-      adds, edits, or whose piles it changes. none shows none. branch draws
+      adds, edits, or that show a pile, a node or a link it changes, and the
+      ones that miss something they should show. none shows none. branch draws
       each with pile, commits the pictures to diagrams-branch in this
       repository, and links them from that commit; it needs contents: write.
     required: false
