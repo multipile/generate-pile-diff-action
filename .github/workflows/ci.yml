@@ -70,22 +70,15 @@ jobs:
   # adds a pile the diagram should show and does not. The token cannot write
   # contents, so no picture is published, and the section still says what
   # each diagram shows.
-  #
-  # TEMPORARY, until a release of pile reports what a diagram's nodes and
-  # links are touched by, and what it misses: pile is built from the branch
-  # of pile-cli that does, and the job may fail without failing the
-  # workflow. Once it is released, take pile-version: latest in place of
-  # pile-ref, and remove continue-on-error.
   diagrams:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: test/fixture.sh "$RUNNER_TEMP/fixture" diagrams
       - id: piles
         uses: ./
         with:
-          pile-ref: work/00080-diagrams-refer-to-nodes-and-edges
+          pile-version: latest
           working-directory: ${{ runner.temp }}/fixture
           base: main
           comment: "false"

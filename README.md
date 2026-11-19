@@ -149,7 +149,7 @@ A pile can keep diagrams of itself in its `.pile/diagrams/`, as `<name>.diagram`
 
 A diagram can say which nodes and links it should show (`pile guide diagrams`). Under a diagram that draws fewer, one more line lists what it misses, in the same words. Such a diagram is shown even when the pull request changed nothing it draws, as it is: a pull request that adds a pile the diagram should show is how it comes to miss one.
 
-Nodes, links and misses need a `pile` that reports them. With an older one, a diagram is listed with the piles it shows that the pull request changed, and their boxes marked, and nothing is said of what it misses.
+Nodes, links and misses need `pile` 0.1.18 or later. With an older one, a diagram is listed with the piles it shows that the pull request changed, and their boxes marked, and nothing is said of what it misses.
 
 `pile` draws each one: it needs `pile` 0.1.14 or later, which the default `pile-version` takes. The action commits the pictures to `diagrams-branch`, `multipile/assets` by default, which it makes the first time, through the API, without touching the checkout.
 - **What each commit holds:** only that run's pictures, under `pr-<number>/<head>/`, on top of the branch as it was.
